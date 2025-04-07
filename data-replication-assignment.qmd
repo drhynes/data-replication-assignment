@@ -1,0 +1,16 @@
+---
+title: "data-replication-assignment"
+format: html
+editor: visual
+---
+
+## Specialist predation covaries with colour polymorphism
+in tawny owls
+
+Summary:
+
+Read in the data table (from the text file given on Dryad)
+
+```{r}
+
+```
