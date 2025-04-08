@@ -67,14 +67,15 @@ head(d)
 Conducting an LMM of variation in inverse Simpson’s diversity index among prey items delivered to the nest in relation to paternal colour morph, small mammal index, brood size and the interaction paternal colour morph by small mammal index
 
 ```{r}
-#install needed packages
-install.packages("Matrix")
-install.packages("lme4")
-install.packages("car")
-install.packages("lmerTest")
-install.packages("knitr")
-install.packages("kableExtra")
-install.packages("ggplot2")
+#install packages if needed
+#chooseCRANmirror()
+#install.packages("Matrix")
+#install.packages("lme4")
+#install.packages("car")
+#install.packages("lmerTest")
+#install.packages("knitr")
+#install.packages("kableExtra")
+#install.packages("ggplot2")
 ```
 
 Doing an LMM for Table 1 and extracting Estimate and SE for each row into a table
@@ -100,6 +101,7 @@ m_SDI_table <- summary(m_SDI)$coefficients
 
 #Extract Estimates, SE, and p value for each row of Table 1
 m_SDI_df <- as.data.frame(m_SDI_table)
+m_SDI_df["male_morph1", ] <- as.character(m_SDI_df["male_morph1", ])
 m_SDI_df <- m_SDI_df[, c("Estimate", "Std. Error", "Pr(>|t|)")]
 
 #Changing rownames to make them consistent with the F value code
