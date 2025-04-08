@@ -1,0 +1,396 @@
+---
+title: "data-replication-assignment"
+format: html
+editor: visual
+---
+
+## Specialist predation covaries with colour polymorphism
+
+**in tawny owls**
+
+Summary:
+
+This paper is looking at heritable color polymorphism (aka feather color) in tawny owls, and how that is different between tawny owls that specialize to a specific prey type, and those that hunt more generally among all prey types. They hypothesized that the grey morph is more specialised in mammalian prey than the brown morph, because of the advantage that those color morphs lend the owl for hunting in boreal vs temperate conditions, and the prey available in those areas. They conclude, based upon the below data, that the brown polymorph is more generalistic (eats a wider variety of prey types) than the grey polymorph, which would be advantageous in unpredictable environments.
+
+Dataset:
+
+The dataset shared represents Tawney owls from Uusimaa, in an area that has agricultural land, spruce-dominated and mixed forests and lakes and streams.\~100 nest boxes were placed, and they were visited 3-5 times to observe clutch size, timing of hatching and hatching success. Plumage colour was scored in adults using a semi-continuous score based on the degree of reddish-brown colouration in four body parts: facial disc, back, breast and general appearance, and the owl was categorized as generally a grey or brown morph. They then cleaned the floor of the nest boxes and recorded what prey bones were present in the owl pellets found in that nest. This yielded them 38 nets where both parents and all nestling were observed. To estimate mass of all prey, they multiplied the average mass of that prey by the number of items of that prey count that they observed in the nest. They also sampled the amount of small mammals in the areas observed to observe the abundance of prey that were available to hunt for the owls.
+
+I will be replicating:
+
+**Table 1:** "Results of a LMM of variation in inverse Simpson’s diversity index among prey items delivered to the nest in relation to paternal colour morph, small mammal index, brood size and the interaction paternal colour morph by small mammal index"
+
+The statistics reported are inferential statistics.
+
+\![Landscape Image](table1-paper.png)
+
+**Figure 1:** "The inverse Simpson’s diversity index of the prey items delivered by grey and brown fathers in relation to small mammal density index. A high value indicates high diversity (number and evenness) of prey types. The plot presents the marginal effects (± 95% CI) of the interaction in the statistical model"
+
+This is a visualization of the modeling done for table 1
+
+\![Landscape Image](figure1-paper)
+
+**Table 2:** "Results of a binomial GLMM of variation in the proportion of (a) mammalian prey type mass and (b) bird prey type mass among prey items delivered to the nest in relation to paternal colour morph, small mammal index, brood size and the interaction paternal colour morph by small mammal index"
+
+The statistics reported are inferential statistics.
+
+\![Landscape Image](table2-paper.png)
+
+**Figure 2:** "Proportion of mammalian prey mass delivered to the nest by grey and brown fathers in relation to small mammal density index. The plot presents the marginal effects (± 95% CI) of the interaction in the statistical model"
+
+This is a visualization of the modeling done for table 2
+
+\![Landscape Image](figure2-paper.png)
+
+**Descriptive Statistics:**
+
+Then to include some descriptive statistics from the first line of the results section. Hopefully this isn't too simplistic. Here's the section that I'll be replicating: "On average, the tawny owls in our population delivered 3255 g (± 295 SE) of prey to their nest during the nestling period."
+
+[**Code:**]{.underline}
+
+Read in the data table (from the text file given on Dryad)
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(readr)
+# Read the preydiet_TO.txt file into a dataframe
+f <- "preydiet_TO.txt"
+d <- read.table(f, header = TRUE, sep = "\t")
+
+head(d)
+
+```
+
+**Table 1:**
+
+Conducting an LMM of variation in inverse Simpson’s diversity index among prey items delivered to the nest in relation to paternal colour morph, small mammal index, brood size and the interaction paternal colour morph by small mammal index
+
+```{r}
+#install needed packages
+install.packages("Matrix")
+install.packages("lme4")
+install.packages("car")
+install.packages("lmerTest")
+install.packages("knitr")
+install.packages("kableExtra")
+install.packages("ggplot2")
+```
+
+Doing an LMM for Table 1 and extracting Estimate and SE for each row into a table
+
+```{r}
+library(Matrix)
+library(lme4)
+
+levels(d$male_morph)
+d$male_morph <- as.factor(d$male_morph)
+d$male_morph <- relevel(d$male_morph, ref = "2")
+
+# Fitting the LMM
+m_SDI <- lmer(inv_Simpson_index ~ male_morph * autumn_voles + brood_size + (1 | maleID) + (1 | year), data = d)
+
+summary(m_SDI)
+
+#Check plot to make sure that this model fits
+plot(m_SDI)
+
+#Save results of the LMM in a table
+m_SDI_table <- summary(m_SDI)$coefficients
+
+#Extract Estimates, SE, and p value for each row of Table 1
+m_SDI_df <- as.data.frame(m_SDI_table)
+m_SDI_df <- m_SDI_df[, c("Estimate", "Std. Error", "Pr(>|t|)")]
+
+#Changing rownames to make them consistent with the F value code
+rownames(m_SDI_df)[2] <- "male_morph"
+rownames(m_SDI_df)[5] <- "male_morph:autumn_voles"
+```
+
+Extracting the F statistic and p value for each row into a new table
+
+```{r}
+library(car)
+library(lmerTest)
+
+
+#ran an anova and saved it as a table
+F_table <- anova(m_SDI, type = "II")
+
+# Extract F and p-values from the ANOVA table
+F_df <- as.data.frame(F_table)
+F_df <- F_df[, c("F value", "Pr(>F)")]
+```
+
+Combine the 2 tables and edit titles to match Table 1
+
+```{r}
+# Merge both tables by row names (to align the terms)
+table1_df <- merge(m_SDI_df, F_df, by = "row.names", all = TRUE)
+
+#Edit this table to remove the blank "intercept" row and repeated p value column
+table1_df <- table1_df[-1,]
+table1_df <- table1_df[,-4]
+rownames(table1_df) <- table1_df[, 1]
+table1_df <- table1_df[, -1]
+
+#change row and column names to match table1
+rownames(table1_df)[which(rownames(table1_df) == "autumn_voles")] <- "Small mammal index"
+rownames(table1_df)[which(rownames(table1_df) == "brood_size")] <- "Brood size"
+rownames(table1_df)[which(rownames(table1_df) == "male_morph")] <- "Colour morph (grey)"
+rownames(table1_df)[which(rownames(table1_df) == "male_morph:autumn_voles")] <- "Col morph:mammal index"
+colnames(table1_df)[which(colnames(table1_df) == "Std. Error")] <- "SE"
+colnames(table1_df)[which(colnames(table1_df) == "F value")] <- "F"
+colnames(table1_df)[which(colnames(table1_df) == "Pr(>F)")] <- "p"
+
+#re-order rows to match Table 1
+table1_df <- table1_df[c(3, 1, 2, 4), ]
+```
+
+Print the table
+
+```{r}
+library(knitr)
+library(kableExtra)
+table1 <- kable(table1_df) |>
+  kable_styling("striped", full_width = FALSE)
+
+print(table1)
+
+#Formatting isn't the exact same as the paper, and I didn't round off my numbers like they did
+
+```
+
+**Figure 1:**
+
+This is going to use the LMM data above to make a plot with Small mammal Index(autumn_voles) on the x axis, inv_Simpson_index on the y axis, and a line for each group in male_morph (those groups being "1" and "2", but representing "grey" and "brown"). In this plot, we are trying to "predict" the Inverse Simpson Diversity Index using our LMM, and showing our 95% confidence intervals for both the grey and brown male morph
+
+```{r}
+library(ggplot2)
+library(lme4)
+
+# Create dataframe to make predictions of inv_Simpson_index
+figure1_data <- expand.grid(
+  autumn_voles = seq(min(d$autumn_voles), max(d$autumn_voles), length.out = 100), 
+  male_morph = factor(c(1, 2), levels = c(1, 2)),  #was having trouble with the values here not being defined as factors, so added this
+  brood_size = mean(d$brood_size)  # Use the mean value for brood_size
+)
+
+# Predict inv_Simpson_index for figure1_data
+figure1_predict <- predict(m_SDI, newdata = figure1_data, re.form = NA, se.fit = TRUE)
+figure1_data$inv_Simpson_index <- figure1_predict$fit
+figure1_data$se_fit <- figure1_predict$se.fit
+
+#Calculate 95% CI
+z_value <- 1.96  # the z value for a 95% CI
+figure1_data$upper_CI <- figure1_data$inv_Simpson_index + z_value * figure1_data$se_fit
+figure1_data$lower_CI <- figure1_data$inv_Simpson_index - z_value * figure1_data$se_fit
+
+# Plot using ggplot2
+figure1 <- ggplot(figure1_data, aes(x = autumn_voles, y = inv_Simpson_index, color = male_morph)) +
+  geom_line(size = 1) +  # Plot the regression lines
+  geom_ribbon(aes(ymin = lower_CI, ymax = upper_CI, fill = male_morph), alpha = 0.2) +  # Add CI ribbons
+  labs(x = "Small mammal index", y = "Inverse Simpson diversity index") +
+  theme_minimal() +
+  guides(color = guide_legend(title = "Morph"), fill = guide_legend(title = "Morph")) +  # Set legend title to Morph
+  scale_color_manual(
+    values = c("1" = "lightblue", "2" = "red"),  # Set the colors for male_morph values
+    labels = c("1" = "grey", "2" = "brown")   # Set the legend labels to grey and brown instead of 1 and 2
+  ) +
+  scale_fill_manual(
+    values = c("1" = "lightblue", "2" = "red"),  # Set the fill colors for the 95% CI ribbons
+    labels = c("1" = "grey", "2" = "brown")   # make it so that it doesn't double print the legend for both the lines and the CIs separately
+  )
+
+print(figure1)
+```
+
+**Table 2:**
+
+This table is a GLMM (instead of an LMM) of variation in the proportion of (a) mammalian prey type mass and (b) bird prey type mass among prey items delivered to the nest in relation to paternal colour morph, small mammal index, brood size and the interaction paternal colour morph by small mammal index.
+
+```{r}
+library(Matrix)
+library(lme4)
+
+# Fit the GLMM for mammal prey mass
+m_prey <- glmer(cbind(Mass_Mammals, Total_prey_mass - Mass_Mammals) ~ male_morph * autumn_voles + brood_size + (1 | maleID) + (1 | year), 
+                        data = d, family = binomial)
+
+summary(m_prey)
+
+#Check plot to make sure that this model fits
+plot(m_prey)
+
+#Save results of the GLMM in a table
+m_prey_table <- summary(m_prey)$coefficients
+
+#change to a dataframe
+m_prey_df <- as.data.frame(m_prey_table)
+
+
+#Changing rownames to make them consistent with the F value code
+rownames(m_prey_df)[2] <- "male_morph"
+rownames(m_prey_df)[5] <- "male_morph:autumn_voles"
+```
+
+Change layout of the table to match table2, change row and column names to match the table, and print it
+
+```{r}
+#Edit this table to remove the blank "intercept" row
+m_prey_df <- m_prey_df[-1,]
+
+#change row and column names to match table1
+rownames(m_prey_df)[which(rownames(m_prey_df) == "autumn_voles")] <- "Small mammal index"
+rownames(m_prey_df)[which(rownames(m_prey_df) == "brood_size")] <- "Brood size"
+rownames(m_prey_df)[which(rownames(m_prey_df) == "male_morph")] <- "Colour morph (grey)"
+rownames(m_prey_df)[which(rownames(m_prey_df) == "male_morph:autumn_voles")] <- "Col morph:mammal index"
+colnames(m_prey_df)[which(colnames(m_prey_df) == "Std. Error")] <- "SE"
+colnames(m_prey_df)[which(colnames(m_prey_df) == "z value")] <- "z"
+colnames(m_prey_df)[which(colnames(m_prey_df) == "Pr(>|z|)")] <- "p"
+
+#print the table
+library(knitr)
+library(kableExtra)
+table2 <- kable(m_prey_df) |>
+  kable_styling("striped", full_width = FALSE)
+
+print(table2)
+
+#Formatting isn't the exact same as the paper, and I didn't round off my numbers like they did
+
+```
+
+**Figure 2:**
+
+```{r}
+library(ggplot2)
+library(lme4)
+
+# Create dataframe to make predictions of prop_mammal_prey_mass
+figure2_data <- expand.grid(
+  autumn_voles = seq(min(d$autumn_voles), max(d$autumn_voles), length.out = 100), 
+  male_morph = factor(c(1, 2), levels = c(1, 2)),  # Ensure male_morph is a factor
+  brood_size = mean(d$brood_size)  # Use the mean value for brood_size
+)
+
+# Predict prop_mammal_prey_mass for figure2_data (use the GLMM model)
+figure2_predict <- predict(m_prey, newdata = figure2_data, re.form = NA, se.fit = TRUE, type = "response")
+figure2_data$prop_mammal_prey_mass <- figure2_predict$fit * 100
+figure2_data$se_fit <- figure2_predict$se.fit *100
+
+# Calculate 95% CI for the predictions
+z_value <- 1.96  # the z value for a 95% CI
+figure2_data$upper_CI <- figure2_data$prop_mammal_prey_mass + z_value * figure2_data$se_fit
+figure2_data$lower_CI <- figure2_data$prop_mammal_prey_mass - z_value * figure2_data$se_fit
+
+# Plot using ggplot2
+figure2 <- ggplot(figure2_data, aes(x = autumn_voles, y = prop_mammal_prey_mass, color = male_morph)) +
+  geom_line(size = 1) +  # Plot the regression lines
+  geom_ribbon(aes(ymin = lower_CI, ymax = upper_CI, fill = male_morph), alpha = 0.2) +  # Add CI ribbons
+  labs(x = "Small mammal index", y = "Proportion of mammal prey mass (%)") +
+  theme_minimal() +
+  guides(color = guide_legend(title = "Morph"), fill = guide_legend(title = "Morph")) +  # Set legend title to Morph
+  scale_color_manual(
+    values = c("1" = "lightblue", "2" = "red"),  # Set the colors for male_morph values
+    labels = c("1" = "grey", "2" = "brown")   # Set the legend labels to grey and brown instead of 1 and 2
+  ) +
+  scale_fill_manual(
+    values = c("1" = "lightblue", "2" = "red"),  # Set the fill colors for the 95% CI ribbons
+    labels = c("1" = "grey", "2" = "brown")   # Make it so that it doesn't double print the legend for both the lines and the CIs separately
+  )
+
+print(figure2)
+```
+
+One issue here, is that my confidence interval is much widen than in the paper, though the line of fit for both morphs does match it (which you can see more clearly if you artificially shrink the CI bars so that it is scaled more similarly).
+
+**Descriptive Statistics:**
+
+Here's the section that I'll be replicating: "On average, the tawny owls in our population delivered 3255 g (± 295 SE) of prey to their nest during the nestling period."
+
+```{r}
+mean_prey_mass <- mean(d$Total_prey_mass, na.rm = TRUE)
+
+SE_prey_mass <- sd(d$Total_prey_mass, na.rm = TRUE) / sqrt(length(d$Total_prey_mass[!is.na(d$Total_prey_mass)]))
+
+print(mean_prey_mass)
+print(SE_prey_mass)
+
+```
+
+These numbers match what is in the paper.
+
+**Discussion/Reflection**
+
+[**Side-by-side comparisons:**]{.underline}
+
+**Table 1:**
+
+\![Landscape Image](table1-paper.png)
+
+```{r}
+print(table1)
+```
+
+Differences:
+
+-My numbers aren't rounded like in the figure, but are the same other than that
+
+-Format/design is slightly different
+
+**Figure 1:**
+
+\![Landscape Image](figure1-paper)
+
+```{r}
+print(figure1)
+```
+
+Differences:
+
+-I believe that it is the same, other than slight formatting/color differences
+
+**Table 2:**
+
+\![Landscape Image](table2-paper.png)
+
+```{r}
+print(table2)
+```
+
+Differences:
+
+-My numbers aren't rounded like in the figure
+
+-Format/design is slightly different
+
+-numbers are the same, except for Colour morph (grey) values being slightly different
+
+**Figure 2:**
+
+\![Landscape Image](figure2-paper.png)
+
+```{r}
+print(figure2)
+```
+
+Differences:
+
+-while the fit lines are the same, my confidence intervals are much wider, which also changes the y axis
+
+I feel that my results successfully replicated the paper. The main hold-ups were that my confidence interval on Figure 2 is much wider than in the paper, and there's slight alterations to the numbers assigned to "Colour morph (grey)" in my tables. Other than that, I think the LMM and GLMM, and the visual representation of the figures, was done successfully.
+
+[**Challenges Encountered:**]{.underline}
+
+My main difficulty was figuring out where the "Small mammal index" value on the figures came from. The paper was not very clear on that. It vaguely said how it was calculated, but figuring out that I didn't need to alter the "autumn_voles" statistic to generate a small mammal index was where I got stuck. Other than that, I feel like replicating these figures was fairly straightforward.
+
+[**Possible reasons for differences:**]{.underline}
+
+**Differences in numbers in tables for "Colour morph (grey)":**
+
+These differences were so small, that I wonder if there was a couple of excluded datapoints in the original analysis that weren't communicated. If it was an issue with calculating them, then I think the differences would be much larger, and it would affect other variables on those tables, not just "Colour morph (grey)".
+
+**CI reporting issues in Figure 2:**
+
+I think that the issue lies in how the proportions (0.0 - 1.0) are being translated into percentages (0-100). The lines themselves are being transformed accurately, but I think that the variability in the data is getting over-emphasized in this translation, resulting in much wider confidence intervals. Though I tried multiple different ways of doing this and didn't find a solution.
